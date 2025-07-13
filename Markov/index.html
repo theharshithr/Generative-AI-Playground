@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markov Chain Text Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .input-section, .output-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        .input-section h3, .output-section h3 {
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 1.3em;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .settings {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .setting-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .setting-group label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        input[type="number"], select {
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .explanation {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 30px;
+            border-left: 5px solid #2196f3;
+        }
+
+        .explanation h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .explanation p {
+            color: #424242;
+            line-height: 1.6;
+        }
+
+        #generated-text {
+            background: #fff;
+            border: 2px solid #28a745;
+            min-height: 150px;
+        }
+
+        .sample-texts {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .sample-btn {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .sample-btn:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .settings {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Markov Chain Text Generator</h1>
+        
+        <div class="controls">
+            <div class="input-section">
+                <h3>📝 Training Text</h3>
+                <div class="sample-texts">
+                    <button class="sample-btn" onclick="loadSample('shakespeare')">Shakespeare</button>
+                    <button class="sample-btn" onclick="loadSample('tech')">Tech Article</button>
+                    <button class="sample-btn" onclick="loadSample('story')">Short Story</button>
+                </div>
+                <textarea id="training-text" placeholder="Enter your training text here. The more text you provide, the better the results!
+
+You can paste:
+- Articles, stories, or books
+- Your own writing
+- Song lyrics
+- Technical documentation
+- Any text you want to generate similar content from
+
+Try the sample buttons above to get started!"></textarea>
+                
+                <div class="settings">
+                    <div class="setting-group">
+                        <label for="order">Order (n-gram):</label>
+                        <input type="number" id="order" value="2" min="1" max="5">
+                    </div>
+                    <div class="setting-group">
+                        <label for="length">Output Length:</label>
+                        <input type="number" id="length" value="100" min="10" max="500">
+                    </div>
+                    <div class="setting-group">
+                        <label for="start-word">Start Word:</label>
+                        <select id="start-word">
+                            <option value="random">Random</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="buttons">
+                    <button class="btn-primary" onclick="trainModel()">🎯 Train Model</button>
+                    <button class="btn-secondary" onclick="clearText()">🗑️ Clear</button>
+                </div>
+            </div>
+            
+            <div class="output-section">
+                <h3>🚀 Generated Text</h3>
+                <textarea id="generated-text" readonly placeholder="Generated text will appear here..."></textarea>
+                
+                <div class="buttons">
+                    <button class="btn-success" onclick="generateText()">✨ Generate Text</button>
+                    <button class="btn-secondary" onclick="copyText()">📋 Copy</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="vocab-size">0</div>
+                <div class="stat-label">Vocabulary Size</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="chain-size">0</div>
+                <div class="stat-label">Chain States</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-words">0</div>
+                <div class="stat-label">Training Words</div>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h4>🧠 How Markov Chains Work</h4>
+            <p>
+                A Markov chain is a mathematical system that transitions from one state to another based on probability. 
+                In text generation, each word (or sequence of words) is a "state," and the model learns the probability 
+                of what word comes next. The "order" determines how many previous words influence the next word choice. 
+                Higher order = more coherent but less creative text.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        class MarkovChain {
+            constructor(order = 2) {
+                this.order = order;
+                this.chain = {};
+                this.vocabulary = new Set();
+                this.startWords = [];
+            }
+
+            tokenize(text) {
+                // Simple tokenization - split by whitespace and punctuation
+                return text.toLowerCase()
+                    .replace(/[^\w\s]/g, ' ')
+                    .split(/\s+/)
+                    .filter(word => word.length > 0);
+            }
+
+            train(text) {
+                const words = this.tokenize(text);
+                this.vocabulary = new Set(words);
+                this.chain = {};
+                this.startWords = [];
+
+                // Build n-gram chains
+                for (let i = 0; i <= words.length - this.order; i++) {
+                    const state = words.slice(i, i + this.order).join(' ');
+                    const nextWord = words[i + this.order];
+
+                    if (i === 0 || words[i - 1] === '.') {
+                        this.startWords.push(state);
+                    }
+
+                    if (nextWord) {
+                        if (!this.chain[state]) {
+                            this.chain[state] = [];
+                        }
+                        this.chain[state].push(nextWord);
+                    }
+                }
+
+                return {
+                    vocabularySize: this.vocabulary.size,
+                    chainSize: Object.keys(this.chain).length,
+                    totalWords: words.length
+                };
+            }
+
+            generate(length = 100, startWord = null) {
+                if (Object.keys(this.chain).length === 0) {
+                    return "Please train the model first!";
+                }
+
+                let result = [];
+                let currentState;
+
+                // Choose starting state
+                if (startWord && this.chain[startWord]) {
+                    currentState = startWord;
+                } else {
+                    currentState = this.startWords[Math.floor(Math.random() * this.startWords.length)];
+                }
+
+                result = currentState.split(' ');
+
+                // Generate text
+                for (let i = 0; i < length - this.order; i++) {
+                    if (!this.chain[currentState] || this.chain[currentState].length === 0) {
+                        break;
+                    }
+
+                    const nextWords = this.chain[currentState];
+                    const nextWord = nextWords[Math.floor(Math.random() * nextWords.length)];
+                    result.push(nextWord);
+
+                    // Update current state
+                    const stateWords = currentState.split(' ');
+                    stateWords.shift();
+                    stateWords.push(nextWord);
+                    currentState = stateWords.join(' ');
+                }
+
+                return result.join(' ');
+            }
+
+            getStartWords() {
+                return [...new Set(this.startWords)].sort();
+            }
+        }
+
+        let markovChain = new MarkovChain(2);
+
+        const sampleTexts = {
+            shakespeare: `To be or not to be, that is the question. Whether 'tis nobler in the mind to suffer the slings and arrows of outrageous fortune, or to take arms against a sea of troubles and by opposing end them. To die, to sleep—no more—and by a sleep to say we end the heartache and the thousand natural shocks that flesh is heir to.`,
+            
+            tech: `Artificial intelligence represents a fundamental shift in how we approach problem-solving. Machine learning algorithms can process vast amounts of data to identify patterns that humans might miss. Deep learning, a subset of machine learning, uses neural networks to model complex relationships in data. These technologies are transforming industries from healthcare to finance, enabling automated decision-making and predictive analytics.`,
+            
+            story: `Once upon a time in a distant galaxy, there lived a young explorer named Alex. Every morning, Alex would venture into the unknown territories of space, discovering new planets and alien civilizations. The universe was vast and full of mysteries waiting to be uncovered. Each adventure brought new challenges and exciting discoveries that would change the course of history forever.`
+        };
+
+        function loadSample(type) {
+            document.getElementById('training-text').value = sampleTexts[type];
+        }
+
+        function trainModel() {
+            const text = document.getElementById('training-text').value;
+            const order = parseInt(document.getElementById('order').value);
+            
+            if (!text.trim()) {
+                alert('Please enter some training text!');
+                return;
+            }
+
+            markovChain = new MarkovChain(order);
+            const stats = markovChain.train(text);
+            
+            // Update statistics
+            document.getElementById('vocab-size').textContent = stats.vocabularySize;
+            document.getElementById('chain-size').textContent = stats.chainSize;
+            document.getElementById('total-words').textContent = stats.totalWords;
+            
+            // Update start word options
+            const startWordSelect = document.getElementById('start-word');
+            startWordSelect.innerHTML = '<option value="random">Random</option>';
+            
+            const startWords = markovChain.getStartWords();
+            startWords.forEach(word => {
+                const option = document.createElement('option');
+                option.value = word;
+                option.textContent = word;
+                startWordSelect.appendChild(option);
+            });
+            
+            alert('Model trained successfully!');
+        }
+
+        function generateText() {
+            const length = parseInt(document.getElementById('length').value);
+            const startWord = document.getElementById('start-word').value;
+            
+            if (Object.keys(markovChain.chain).length === 0) {
+                alert('Please train the model first!');
+                return;
+            }
+            
+            const generated = markovChain.generate(
+                length, 
+                startWord === 'random' ? null : startWord
+            );
+            
+            document.getElementById('generated-text').value = generated;
+        }
+
+        function clearText() {
+            document.getElementById('training-text').value = '';
+            document.getElementById('generated-text').value = '';
+            document.getElementById('vocab-size').textContent = '0';
+            document.getElementById('chain-size').textContent = '0';
+            document.getElementById('total-words').textContent = '0';
+        }
+
+        function copyText() {
+            const generatedText = document.getElementById('generated-text');
+            generatedText.select();
+            document.execCommand('copy');
+            alert('Text copied to clipboard!');
+        }
+
+        // Initialize with a sample
+        window.onload = function() {
+            loadSample('shakespeare');
+        };
+    </script>
+</body>
+</html>
